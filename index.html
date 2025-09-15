@@ -39,14 +39,23 @@
 
   <script>
     function timeAgo(timestamp) {
-        const ts = String(timestamp).length === 10 ? timestamp * 1000 : timestamp; // detik → ms
-        const now = Date.now();
-        const diff = Math.floor((now - ts) / 1000);
-        if (diff < 60) return "now";
-        if (diff < 3600) return `${Math.floor(diff / 60)} m`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
-        if (diff < 604800) return `${Math.floor(diff / 86400)} d`;
-        return `${Math.floor(diff / 604800)} w`;
+      let ts = Number(timestamp);
+      if (isNaN(ts)) return "invalid";
+      if (String(ts).length === 10) ts *= 1000; // detik → ms
+
+      const now = Date.now();
+      const diff = Math.floor((now - ts) / 1000);
+      if (diff < 60) return "now";
+      if (diff < 3600) return `${Math.floor(diff / 60)} m`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)} d`;
+      return `${Math.floor(diff / 604800)} w`;
+    }
+
+    function spotifyUrl(uri) {
+      if (!uri) return "#";
+      const parts = uri.split(":");
+      return "https://open.spotify.com/track/" + (parts[2] || uri);
     }
 
     // Live couple view
@@ -55,18 +64,19 @@
       .then(data => {
         const container = document.getElementById("couple");
         container.innerHTML = "";
-        const friends = data.friends.filter(f => f.track).slice(0,2);
+        const friends = (data.friends || []).filter(f => f.track).slice(0,2);
+
         friends.forEach(buddy => {
           const div = document.createElement("div");
           div.className = "text-center max-w-[200px]";
           div.innerHTML = `
-            <div class="font-bold mb-2">${buddy.user.name}</div>
+            <div class="font-bold mb-2">${buddy.user?.name || "Unknown"}</div>
             <div class="relative w-40 h-40 mx-auto rounded-full overflow-hidden shadow-lg spin-slow vinyl bg-gradient-to-br from-[#222] via-[#111] to-black">
-              <img src="${buddy.track.imageUrl}" class="w-full h-full object-cover rounded-full relative z-10" alt="album art">
+              <img src="${buddy.track?.imageUrl || ""}" class="w-full h-full object-cover rounded-full relative z-10" alt="album art">
             </div>
             <div class="mt-3">
-              <a href="${spotifyUrl(buddy.track.uri)}" target="_blank" class="block text-sm hover:text-[#1db954] transition">
-                🎵 ${buddy.track.name} - ${buddy.track.artist.name}
+              <a href="${spotifyUrl(buddy.track?.uri)}" target="_blank" class="block text-sm hover:text-[#1db954] transition">
+                🎵 ${buddy.track?.name || ""} - ${buddy.track?.artist?.name || ""}
               </a>
             </div>
             <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(buddy.timestamp)}</div>
@@ -82,17 +92,19 @@
         const container = document.getElementById("history");
         container.innerHTML = "";
 
-        history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => {
-          const div = document.createElement("div");
-          div.className = "bg-[#1e1e1e] rounded-xl shadow p-4 text-left";
-          div.innerHTML = `
-            <a href="${spotifyUrl(item.uri)}" target="_blank" class="font-medium hover:text-[#1db954] transition">
-              🎵 ${item.track} - ${item.artist}
-            </a>
-            <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(item.timestamp)}</div>
-          `;
-          container.appendChild(div);
-        });
+        (history || [])
+          .sort((a,b) => Number(b.timestamp) - Number(a.timestamp))
+          .forEach(item => {
+            const div = document.createElement("div");
+            div.className = "bg-[#1e1e1e] rounded-xl shadow p-4 text-left";
+            div.innerHTML = `
+              <a href="${spotifyUrl(item.uri)}" target="_blank" class="font-medium hover:text-[#1db954] transition">
+                🎵 ${item.track} - ${item.artist}
+              </a>
+              <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(item.timestamp)}</div>
+            `;
+            container.appendChild(div);
+          });
       });
   </script>
 </body>
