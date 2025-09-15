@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Spotify Couple</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+    }
+    h1 {
+      color: #1db954;
+      margin-bottom: 30px;
+    }
+    .couple {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+    .user {
+      text-align: center;
+      max-width: 200px;
+    }
+    .album-wrapper {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      margin: 10px auto;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle, #222 0%, #111 40%, #000 70%);
+      background-size: cover;
+      animation: spin 20s linear infinite;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    }
+    .album-wrapper::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 30px;
+      height: 30px;
+      background: #000;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.2);
+    }
+    .album-art {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      position: relative;
+      z-index: 1;
+    }
+    .name {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .track a {
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .track a:hover {
+      color: #1db954;
+    }
+    .time {
+      font-size: 12px;
+      color: #888;
+    }
+    .history {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .history-item {
+      padding: 8px;
+      border-bottom: 1px solid #333;
+    }
+    .history-item a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .history-item a:hover {
+      color: #1db954;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>💚 Lagu Kita Lagi Dengerin</h1>
+  <div class="couple" id="couple">Loading...</div>
+
+  <h2>📜 History</h2>
+  <div class="history" id="history">Loading...</div>
+
+  <script>
+    function timeAgo(timestamp) {
+      const now = Date.now();
+      const diff = Math.floor((now - timestamp) / 1000);
+      if (diff < 60) return "now";
+      if (diff < 3600) return `${Math.floor(diff / 60)} m`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)} d`;
+      return `${Math.floor(diff / 604800)} w`;
+    }
+    function spotifyUrl(uri) {
+      return "https://open.spotify.com/track/" + uri.split(":")[2];
+    }
+
+    // Live couple view
+    fetch("live.json")
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("couple");
+        container.innerHTML = "";
+        const friends = data.friends.filter(f => f.track).slice(0,2);
+        friends.forEach(buddy => {
+          const div = document.createElement("div");
+          div.className = "user";
+          div.innerHTML = `
+            <div class="name">${buddy.user.name}</div>
+            <div class="album-wrapper">
+              <img class="album-art" src="${buddy.track.imageUrl}" alt="album art">
+            </div>
+            <div class="track">
+              <a href="${spotifyUrl(buddy.track.uri)}" target="_blank">
+                🎵 ${buddy.track.name} - ${buddy.track.artist.name}
+              </a>
+            </div>
+            <div class="time">⏰ ${timeAgo(buddy.timestamp)}</div>
+          `;
+          container.appendChild(div);
+        });
+      });
+
+    // History
+    fetch("history.json")
+      .then(res => res.json())
+      .then(history => {
+        const container = document.getElementById("history");
+        container.innerHTML = "";
+        history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => {
+          const div = document.createElement("div");
+          div.className = "history-item";
+          div.innerHTML = `
+            <a href="${spotifyUrl(item.uri)}" target="_blank">
+              🎵 ${item.track} - ${item.artist}
+            </a>
+            <span style="float:right; color:#888;">${timeAgo(item.timestamp)}</span>
+          `;
+          container.appendChild(div);
+        });
+      });
+  </script>
+</body>
+</html>
