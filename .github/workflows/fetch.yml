@@ -5,12 +5,17 @@ on:
     - cron: "*/1 * * * *"   # tiap menit
   workflow_dispatch:
 
+permissions:
+  contents: write   # <-- wajib biar bisa commit & push
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}   # default token bawaan Actions
 
       - name: Fetch buddylist
         run: |
@@ -22,9 +27,8 @@ jobs:
             echo "[]" > history.json
           fi
 
-          # Ambil track dari MY_ID & PACAR_ID
           jq --arg id1 "${{ secrets.MY_ID }}" --arg id2 "${{ secrets.PACAR_ID }}" '
-            [.friends[] 
+            [.friends[]
             | select(.track and (.user.uri==$id1 or .user.uri==$id2))
             | {
               timestamp: (now | todate),
@@ -36,7 +40,6 @@ jobs:
               imageUrl: .track.imageUrl
             }]' live.json > latest.json
 
-          # Gabungkan ke history.json
           jq -s '.[0] + .[1] | unique_by(.timestamp, .userId)' history.json latest.json > tmp.json
           mv tmp.json history.json
           rm latest.json
