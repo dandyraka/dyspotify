@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # <-- wajib biar bisa commit & push
+  contents: write   # wajib agar bisa commit & push
 
 jobs:
   fetch:
@@ -15,21 +15,23 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}   # default token bawaan Actions
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Fetch buddylist
         run: |
+          # Fetch live buddylist
           curl -s "https://guc-spclient.spotify.com/presence-view/v1/buddylist" \
             -H "Authorization: Bearer ${{ secrets.SPOTIFY_TOKEN }}" \
             -o live.json
 
+          # Pastikan history.json ada
           if [ ! -f history.json ]; then
             echo "[]" > history.json
           fi
 
+          # Filter hanya teman yang punya track dan ID sesuai
           jq --arg id1 "${{ secrets.MY_ID }}" --arg id2 "${{ secrets.PACAR_ID }}" '
-            [.friends[]
-            | select(.track and (.user.uri==$id1 or .user.uri==$id2))
+            [.friends[] | select(.track and (.user.uri==$id1 or .user.uri==$id2))
             | {
               timestamp: .timestamp,
               user: .user.name,
@@ -40,14 +42,23 @@ jobs:
               imageUrl: .track.imageUrl
             }]' live.json > latest.json
 
+          # Cek apakah latest.json kosong
+          COUNT=$(jq 'length' latest.json)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No new data, skip update"
+            exit 0
+          fi
+
+          # Merge dengan history.json
           jq -s '.[0] + .[1] | unique_by(.timestamp, .userId)' history.json latest.json > tmp.json
           mv tmp.json history.json
           rm latest.json
 
       - name: Commit & push
         run: |
+          # Hanya commit jika ada perubahan
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add live.json history.json
-          git commit -m "update data $(date)" || echo "no changes"
+          git diff --cached --quiet || git commit -m "update data $(date)"
           git push
