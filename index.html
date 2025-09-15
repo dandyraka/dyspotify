@@ -31,18 +31,24 @@
   <h1 class="text-2xl font-bold text-[#1db954] mb-10">Spotify Activity</h1>
 
   <!-- Couple Live -->
-  <div id="couple" class="flex justify-center flex-wrap gap-10 mb-12">Loading...</div>
+  <div id="couple" class="grid grid-cols-2 gap-10 mb-12 max-w-3xl mx-auto"></div>
 
   <!-- History -->
   <h2 class="text-xl font-semibold mb-6">📜 History</h2>
   <div id="history" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
   <script>
-    function timeAgo(timestamp) {
-      let ts = Number(timestamp);
-      if (isNaN(ts)) return "invalid";
-      if (String(ts).length === 10) ts *= 1000; // detik → ms
+    const MY_ID = "spotify:user:dandyraka_";
+    const PACAR_ID = "spotify:user:21jq6cmbitks7givwb7zvsyxy";
 
+    function getInitial(userId) {
+        if (userId === PACAR_ID) return "Y";
+        if (userId === MY_ID) return "D";
+        return "U";
+    }
+
+    function timeAgo(timestamp) {
+      const ts = String(timestamp).length === 10 ? timestamp * 1000 : timestamp;
       const now = Date.now();
       const diff = Math.floor((now - ts) / 1000);
       if (diff < 60) return "now";
@@ -53,79 +59,93 @@
     }
 
     function spotifyUrl(uri) {
-      if (!uri) return "#";
-      const parts = uri.split(":");
-      return "https://open.spotify.com/track/" + (parts[2] || uri);
+      return "https://open.spotify.com/track/" + uri.split(":")[2];
     }
 
-    // Live couple view
+    // Live couple view (fixed: pacar kiri, aku kanan)
     fetch("live.json")
       .then(res => res.json())
       .then(data => {
         const container = document.getElementById("couple");
         container.innerHTML = "";
-        const friends = (data.friends || []).filter(f => f.track).slice(0,2);
 
-        friends.forEach(buddy => {
-          const div = document.createElement("div");
-          div.className = "text-center max-w-[200px]";
-          div.innerHTML = `
-            <div class="font-bold mb-2">${buddy.user?.name || "Unknown"}</div>
-            <div class="relative w-40 h-40 mx-auto rounded-full overflow-hidden shadow-lg spin-slow vinyl bg-gradient-to-br from-[#222] via-[#111] to-black">
-              <img src="${buddy.track?.imageUrl || ""}" class="w-full h-full object-cover rounded-full relative z-10" alt="album art">
+        const pacar = (data.friends || []).find(f => f.user.uri === PACAR_ID);
+        const aku   = (data.friends || []).find(f => f.user.uri === MY_ID);
+
+        function renderBuddy(buddy, align) {
+          if (!buddy?.track) return `<div></div>`;
+          return `
+            <div class="text-center ${align === 'right' ? 'order-last' : ''}">
+              <div class="font-bold mb-2">${getInitial(buddy.user.uri) || "Unknown"}</div>
+              <div class="relative w-40 h-40 mx-auto rounded-full overflow-hidden shadow-lg spin-slow vinyl bg-gradient-to-br from-[#222] via-[#111] to-black">
+                <img src="${buddy.track?.imageUrl || ""}" class="w-full h-full object-cover rounded-full relative z-10" alt="album art">
+              </div>
+              <div class="mt-3">
+                <a href="${spotifyUrl(buddy.track?.uri)}" target="_blank" class="block text-sm hover:text-[#1db954] transition">
+                  🎵 ${buddy.track?.name || ""} - ${buddy.track?.artist?.name || ""}
+                </a>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(buddy.timestamp)}</div>
             </div>
-            <div class="mt-3">
-              <a href="${spotifyUrl(buddy.track?.uri)}" target="_blank" class="block text-sm hover:text-[#1db954] transition">
-                🎵 ${buddy.track?.name || ""} - ${buddy.track?.artist?.name || ""}
-              </a>
-            </div>
-            <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(buddy.timestamp)}</div>
           `;
-          container.appendChild(div);
-        });
+        }
+
+        container.innerHTML = `
+          ${renderBuddy(pacar, "left")}
+          ${renderBuddy(aku, "right")}
+        `;
       });
 
-    // History
+    // History (pacar align kanan, aku align kiri)
     fetch("history.json")
-        .then(res => res.json())
-        .then(history => {
+      .then(res => res.json())
+      .then(history => {
+        const pacar = history.filter(h => h.userId === PACAR_ID).sort((a,b) => b.timestamp - a.timestamp);
+        const aku   = history.filter(h => h.userId === MY_ID).sort((a,b) => b.timestamp - a.timestamp);
+
         const container = document.getElementById("history");
-        container.innerHTML = "";
+        container.innerHTML = `
+          <div class="col">
+            <div id="pacar-col" class="space-y-4"></div>
+          </div>
+          <div class="col">
+            <div id="aku-col" class="space-y-4"></div>
+          </div>
+        `;
 
-        // urutkan terbaru dulu
-        history
-            .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
-            .forEach(item => {
+        const pacarCol = document.getElementById("pacar-col");
+        const akuCol = document.getElementById("aku-col");
+
+        pacar.forEach(item => {
             const div = document.createElement("div");
-            div.className =
-                "bg-[#1e1e1e] rounded-xl shadow p-4 flex gap-4 items-center";
-
+            div.className = "bg-[#1e1e1e] rounded-xl shadow p-3 flex items-center justify-end space-x-3 max-w-fit ml-auto"; 
             div.innerHTML = `
-                <img src="${item.imageUrl}" alt="album art"
-                    class="w-12 h-12 rounded shadow object-cover"/>
-                <div class="flex-1">
-                <a href="${spotifyUrl(item.uri)}" target="_blank"
-                    class="font-medium hover:text-[#1db954] transition block">
+                <div class="flex flex-col items-end">
+                <a href="${spotifyUrl(item.uri)}" target="_blank" class="font-medium hover:text-[#1db954] transition">
                     🎵 ${item.track} - ${item.artist}
                 </a>
-                <div class="text-xs text-gray-400 mt-1">
-                    👤 ${item.user} · ⏰ ${timeAgo(Number(item.timestamp))}
+                <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(item.timestamp)}</div>
                 </div>
+                <img src="${item.imageUrl}" class="w-14 h-14 rounded">
+            `;
+            pacarCol.appendChild(div);
+        });
+
+        aku.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "bg-[#1e1e1e] rounded-xl shadow p-3 flex items-center justify-start space-x-3 max-w-fit"; 
+            div.innerHTML = `
+                <img src="${item.imageUrl}" class="w-14 h-14 rounded">
+                <div class="flex flex-col items-start">
+                <a href="${spotifyUrl(item.uri)}" target="_blank" class="font-medium hover:text-[#1db954] transition">
+                    🎵 ${item.track} - ${item.artist}
+                </a>
+                <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(item.timestamp)}</div>
                 </div>
             `;
-            container.appendChild(div);
-            });
-
-        if (!history.length) {
-            container.innerHTML =
-            `<div class="text-gray-500">History kosong</div>`;
-        }
-        })
-        .catch(err => {
-        console.error("Error load history.json:", err);
-        document.getElementById("history").innerHTML =
-            `<div class="text-red-500">Gagal load history.json</div>`;
+            akuCol.appendChild(div);
         });
+      });
   </script>
 </body>
 </html>
