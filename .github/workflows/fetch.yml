@@ -31,7 +31,7 @@ jobs:
             [.friends[]
             | select(.track and (.user.uri==$id1 or .user.uri==$id2))
             | {
-              timestamp: (now | todate),
+              timestamp: .timestamp,
               user: .user.name,
               userId: .user.uri,
               track: .track.name,
