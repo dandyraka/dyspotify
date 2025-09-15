@@ -3,42 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>Spotify Couple</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #121212;
-      color: #fff;
-      text-align: center;
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-    h1 {
-      color: #1db954;
-      margin-bottom: 30px;
+    .spin-slow {
+      animation: spin-slow 20s linear infinite;
     }
-    .couple {
-      display: flex;
-      justify-content: center;
-      gap: 50px;
-      flex-wrap: wrap;
-      margin-bottom: 50px;
-    }
-    .user {
-      text-align: center;
-      max-width: 200px;
-    }
-    .album-wrapper {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      margin: 10px auto;
-      position: relative;
-      overflow: hidden;
-      background: radial-gradient(circle, #222 0%, #111 40%, #000 70%);
-      background-size: cover;
-      animation: spin 20s linear infinite;
-      box-shadow: 0 0 20px rgba(0,0,0,0.8);
-    }
-    .album-wrapper::before {
+    .vinyl::before {
       content: "";
       position: absolute;
       top: 50%;
@@ -51,59 +25,17 @@
       z-index: 2;
       box-shadow: inset 0 0 10px rgba(255,255,255,0.2);
     }
-    .album-art {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-      position: relative;
-      z-index: 1;
-    }
-    .name {
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .track a {
-      color: inherit;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .track a:hover {
-      color: #1db954;
-    }
-    .time {
-      font-size: 12px;
-      color: #888;
-    }
-    .history {
-      max-width: 600px;
-      margin: 0 auto;
-      text-align: left;
-    }
-    .history-item {
-      padding: 8px;
-      border-bottom: 1px solid #333;
-    }
-    .history-item a {
-      color: inherit;
-      text-decoration: none;
-    }
-    .history-item a:hover {
-      color: #1db954;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
   </style>
 </head>
-<body>
-  <h1>💚 Lagu Kita Lagi Dengerin</h1>
-  <div class="couple" id="couple">Loading...</div>
+<body class="bg-[#121212] text-white font-sans p-6 text-center">
+  <h1 class="text-2xl font-bold text-[#1db954] mb-10">💚 Lagu Kita Lagi Dengerin</h1>
 
-  <h2>📜 History</h2>
-  <div class="history" id="history">Loading...</div>
+  <!-- Couple Live -->
+  <div id="couple" class="flex justify-center flex-wrap gap-10 mb-12">Loading...</div>
+
+  <!-- History -->
+  <h2 class="text-xl font-semibold mb-6">📜 History</h2>
+  <div id="history" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
   <script>
     function timeAgo(timestamp) {
@@ -128,18 +60,18 @@
         const friends = data.friends.filter(f => f.track).slice(0,2);
         friends.forEach(buddy => {
           const div = document.createElement("div");
-          div.className = "user";
+          div.className = "text-center max-w-[200px]";
           div.innerHTML = `
-            <div class="name">${buddy.user.name}</div>
-            <div class="album-wrapper">
-              <img class="album-art" src="${buddy.track.imageUrl}" alt="album art">
+            <div class="font-bold mb-2">${buddy.user.name}</div>
+            <div class="relative w-40 h-40 mx-auto rounded-full overflow-hidden shadow-lg spin-slow vinyl bg-gradient-to-br from-[#222] via-[#111] to-black">
+              <img src="${buddy.track.imageUrl}" class="w-full h-full object-cover rounded-full relative z-10" alt="album art">
             </div>
-            <div class="track">
-              <a href="${spotifyUrl(buddy.track.uri)}" target="_blank">
+            <div class="mt-3">
+              <a href="${spotifyUrl(buddy.track.uri)}" target="_blank" class="block text-sm hover:text-[#1db954] transition">
                 🎵 ${buddy.track.name} - ${buddy.track.artist.name}
               </a>
             </div>
-            <div class="time">⏰ ${timeAgo(buddy.timestamp)}</div>
+            <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(buddy.timestamp)}</div>
           `;
           container.appendChild(div);
         });
@@ -151,14 +83,15 @@
       .then(history => {
         const container = document.getElementById("history");
         container.innerHTML = "";
+
         history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => {
           const div = document.createElement("div");
-          div.className = "history-item";
+          div.className = "bg-[#1e1e1e] rounded-xl shadow p-4 text-left";
           div.innerHTML = `
-            <a href="${spotifyUrl(item.uri)}" target="_blank">
+            <a href="${spotifyUrl(item.uri)}" target="_blank" class="font-medium hover:text-[#1db954] transition">
               🎵 ${item.track} - ${item.artist}
             </a>
-            <span style="float:right; color:#888;">${timeAgo(item.timestamp)}</span>
+            <div class="text-xs text-gray-400 mt-1">⏰ ${timeAgo(item.timestamp)}</div>
           `;
           container.appendChild(div);
         });
