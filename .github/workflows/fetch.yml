@@ -2,7 +2,7 @@ name: Fetch Spotify Buddylist
 
 on:
   schedule:
-    - cron: "*/1 * * * *"   # tiap menit
+    - cron: "* * * * *"   # tiap menit
   workflow_dispatch:
 
 permissions:
